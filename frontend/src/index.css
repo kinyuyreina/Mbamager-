@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Redefine slate scales to dynamically transition between Light and Dark mode */
+  --color-slate-50: var(--slate-50);
+  --color-slate-100: var(--slate-100);
+  --color-slate-200: var(--slate-200);
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  --color-slate-700: var(--slate-700);
+  --color-slate-800: var(--slate-800);
+  --color-slate-900: var(--slate-900);
+  --color-slate-950: var(--slate-950);
+  
+  /* Gold signature colors */
+  --color-gold-50: #FCF9EC;
+  --color-gold-100: #F6EFCF;
+  --color-gold-200: #ECDDA1;
+  --color-gold-300: #E0B84B;
+  --color-gold-400: #D4AF37;
+  --color-gold-500: #C9A227;
+  --color-gold-600: #A2801A;
+  --color-gold-700: #7C6010;
+  --color-gold-800: #56410A;
+  --color-gold-900: #352604;
+  
+  --color-gold: #D4AF37;
+  
+  /* Emerald overrides (only for positive counters, income, completed goals) */
+  --color-emerald-50: #EDF7F4;
+  --color-emerald-100: #D3ECDF;
+  --color-emerald-200: #A1D4B8;
+  --color-emerald-300: #2E8B57;
+  --color-emerald-400: #0F8A5F;
+  --color-emerald-500: #0B6E4F;
+  --color-emerald-600: #08533C;
+  --color-emerald-700: #063C2B;
+}
+
+/* Light theme values (default Gold & White theme) */
+:root {
+  /* Slate mappings for Light Mode */
+  --slate-950: #F8F8F5; /* Pure, luxurious, off-white background (#F8F8F5) */
+  --slate-900: #FFFFFF; /* Panel, Card, container background (Pure white!) */
+  --slate-800: #EAEAE4; /* Input border / panel border (subtle off-white grey) */
+  --slate-700: #DCDCD4; /* Hover border / active outline */
+  --slate-600: #8E8E82; /* Subtitles, placeholders, minor details */
+  --slate-500: #717165; /* Labels, secondary metadata */
+  --slate-400: #57574B; /* General readable text */
+  --slate-300: #3E3E34; /* Dark secondary headings */
+  --slate-200: #25251F; /* Dark bold titles */
+  --slate-100: #1C1C17; /* Deepest black/charcoal text */
+  --slate-50: #10100D;  /* Fallback super dark */
+}
+
+/* Dark theme overrides (active when class .dark is applied to html) */
+.dark {
+  /* Restores the sleek modern dark mode colors from original design */
+  --slate-950: #020617; /* Deepest blue/black */
+  --slate-900: #0f172a; /* Card slate background */
+  --slate-800: #1e293b; /* Borders */
+  --slate-700: #334155; /* Active focus/hover boundaries */
+  --slate-600: #475569; /* Muted texts */
+  --slate-500: #64748b; /* Placeholders */
+  --slate-400: #94a3b8; /* Medium text */
+  --slate-300: #cbd5e1; /* Regular text */
+  --slate-200: #e2e8f0; /* Heading text */
+  --slate-100: #f1f5f9; /* Title/High contrast text */
+  --slate-50: #f8fafc;  /* Maximum contrast text */
+}
+
+/* Custom Scrollbar, Layout, and Animation overrides */
+html, body {
+  font-family: var(--font-sans);
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-100);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate-800);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-400);
+}
+
+/* Luxury card-gild overlay effects */
+.premium-glow-emerald {
+  box-shadow: 0 4px 30px rgba(15, 138, 95, 0.05);
+}
+
+.premium-glow-gold {
+  box-shadow: 0 4px 30px rgba(212, 175, 55, 0.05);
+}
