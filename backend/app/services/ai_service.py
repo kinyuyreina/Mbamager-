@@ -18,6 +18,7 @@ from app.ai.prompts import (
     ANOMALY_PROMPT,
     SPENDING_INSIGHT_PROMPT,
     EXPLANATION_PROMPT,
+    SCAM_ANALYSIS_PROMPT,
 )
 
 logger = logging.getLogger(__name__)
@@ -289,5 +290,87 @@ class AIService:
                     "reason": "Alternative classification if transaction context is specialized."
                 }
             ],
+            "fallback": True,
+        }
+
+    def analyze_scam_risk(
+        self,
+        text: str,
+        sender: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Assess a free-text SMS/message/link for common Mobile Money scam patterns
+        (SENTINEL). Never blocks or acts on anything itself — per Engineering Law 1,
+        this is advisory only; the user decides what to do with the assessment.
+        """
+        prompt = SCAM_ANALYSIS_PROMPT.format(
+            sender=sender or "Unknown",
+            text=text,
+        )
+
+        result = self._call_gemini_json(prompt)
+        if result and "is_suspicious" in result:
+            risk_level = str(result.get("risk_level", "LOW")).upper()
+            if risk_level not in ("LOW", "MEDIUM", "HIGH"):
+                risk_level = "LOW"
+            return {
+                "is_suspicious": bool(result["is_suspicious"]),
+                "risk_level": risk_level,
+                "risk_score": float(result.get("risk_score", 0.0)),
+                "reasons": result.get("reasons", []),
+                "recommended_action": result.get(
+                    "recommended_action",
+                    "Verify independently before acting; never share your PIN or OTP.",
+                ),
+            }
+
+        # Deterministic keyword-based fallback if Gemini is unavailable or fails.
+        body = (text or "").lower()
+        signal_groups: Dict[str, list[str]] = {
+            "creates urgency or threatens account loss": [
+                "urgent", "immediately", "act now", "account will be blocked",
+                "account suspended", "expires today", "final notice",
+            ],
+            "asks for a PIN, OTP, or password": [
+                "pin", "otp", "one time password", "verification code", "confirm your code",
+            ],
+            "claims an unsolicited prize or lottery win": [
+                "congratulations", "you have won", "you've won", "claim your prize", "lottery",
+            ],
+            "impersonates official support or security staff": [
+                "customer service", "verify your account", "official agent", "security team",
+            ],
+            "promises unrealistic investment returns": [
+                "double your money", "guaranteed return", "risk-free investment", "high returns",
+            ],
+            "pressures clicking a link or calling a number right away": [
+                "click here", "click the link", "call this number now",
+            ],
+        }
+
+        matched_reasons: list[str] = []
+        for reason, keywords in signal_groups.items():
+            if any(kw in body for kw in keywords):
+                matched_reasons.append(reason)
+
+        risk_score = min(0.95, 0.18 * len(matched_reasons))
+        if risk_score >= 0.6:
+            risk_level = "HIGH"
+        elif risk_score >= 0.3:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "LOW"
+
+        return {
+            "is_suspicious": len(matched_reasons) > 0,
+            "risk_level": risk_level,
+            "risk_score": risk_score,
+            "reasons": matched_reasons or ["No common scam patterns detected."],
+            "recommended_action": (
+                "Never share your PIN, OTP, or password with anyone, and verify through "
+                "official channels before acting on this message."
+                if matched_reasons
+                else "No immediate red flags found, but stay cautious with unfamiliar senders."
+            ),
             "fallback": True,
         }

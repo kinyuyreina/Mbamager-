@@ -21,6 +21,7 @@ from app.api.routes import (
     goals,
     notifications,
     recurring_transactions,
+    scam,
     sms,
     transaction,
 )
@@ -82,6 +83,7 @@ app.include_router(dashboard.router, prefix=API_V1_PREFIX)
 app.include_router(goals.router, prefix=API_V1_PREFIX)
 app.include_router(notifications.router, prefix=API_V1_PREFIX)
 app.include_router(recurring_transactions.router, prefix=API_V1_PREFIX)
+app.include_router(scam.router, prefix=API_V1_PREFIX)
 app.include_router(sms.router, prefix=API_V1_PREFIX)
 app.include_router(transaction.router, prefix=API_V1_PREFIX)
 
