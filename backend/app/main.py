@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.routes import (
     account,
+    assistant,
     auth,
     budget,
     dashboard,
@@ -77,6 +78,7 @@ setup_exception_handlers(app)
 API_V1_PREFIX = "/api/v1"
 
 app.include_router(account.router, prefix=API_V1_PREFIX)
+app.include_router(assistant.router, prefix=API_V1_PREFIX)
 app.include_router(auth.router, prefix=API_V1_PREFIX)
 app.include_router(budget.router, prefix=API_V1_PREFIX)
 app.include_router(dashboard.router, prefix=API_V1_PREFIX)

@@ -20,6 +20,7 @@ from app.ai.prompts import (
     EXPLANATION_PROMPT,
     SCAM_ANALYSIS_PROMPT,
     BUDGET_COACH_PROMPT,
+    FINANCIAL_ASSISTANT_PROMPT,
 )
 
 logger = logging.getLogger(__name__)
@@ -456,3 +457,126 @@ class AIService:
             "encouragement": encouragement,
             "fallback": True,
         }
+
+    def generate_assistant_reply(
+        self,
+        message: str,
+        conversation_history: List[Dict[str, str]],
+        transactions: List[Dict[str, Any]],
+        budgets: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Generate a conversational reply for the GUIDE financial assistant chat.
+        Only ever reasons about the transactions/budgets it's given (already
+        fetched from the real ledger by the caller) — never invents figures,
+        and never writes to the ledger itself (Engineering Law 1).
+        """
+        prompt = FINANCIAL_ASSISTANT_PROMPT.format(
+            transactions_json=json.dumps(transactions, default=str),
+            budgets_json=json.dumps(budgets, default=str),
+            conversation_history_json=json.dumps(conversation_history, default=str),
+            message=message,
+        )
+
+        result = self._call_gemini_json(prompt)
+        if result and "reply" in result:
+            follow_ups = result.get("suggested_follow_ups", [])
+            if not isinstance(follow_ups, list):
+                follow_ups = []
+            return {
+                "reply": result["reply"],
+                "suggested_follow_ups": follow_ups[:3],
+            }
+
+        # Deterministic keyword-based fallback if Gemini is unavailable or fails.
+        return self._assistant_fallback(message, transactions, budgets)
+
+    @staticmethod
+    def _assistant_fallback(
+        message: str,
+        transactions: List[Dict[str, Any]],
+        budgets: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Rule-based reply used only when Gemini is unavailable. Reasons purely
+        over the transactions/budgets already computed by the deterministic
+        ledger — never estimates or invents figures.
+        """
+        query = (message or "").lower()
+        debit_totals: Dict[str, float] = {}
+        largest_expense = {"narrative": "", "amount": 0.0}
+        total_income = 0.0
+        total_expenses = 0.0
+
+        for tx in transactions:
+            amt = float(tx.get("amount", 0.0))
+            direction = tx.get("direction", "")
+            category = tx.get("category", "EXPENSE_FOOD")
+            if direction == "CREDIT":
+                total_income += amt
+            else:
+                total_expenses += amt
+                debit_totals[category] = debit_totals.get(category, 0.0) + amt
+                if amt > largest_expense["amount"]:
+                    largest_expense = {"narrative": tx.get("narrative") or "Expense", "amount": amt}
+
+        top_categories = sorted(debit_totals.items(), key=lambda kv: kv[1], reverse=True)[:3]
+        follow_ups = [
+            "Where did I spend the most this month?",
+            "What should I reduce?",
+            "How much did I save?",
+        ]
+
+        if any(kw in query for kw in ("most", "largest", "expense")):
+            if not top_categories:
+                reply = "I don't see any categorized expenses yet — once you have some transactions logged, I can break down where your money is going."
+            else:
+                lines = [f"Your largest single transaction was {largest_expense['narrative']} at {largest_expense['amount']:.2f} XAF."]
+                lines.append("Top spending categories:")
+                for cat, amt in top_categories:
+                    lines.append(f"- {cat.replace('EXPENSE_', '').title()}: {amt:.2f} XAF")
+                reply = "\n".join(lines)
+            return {"reply": reply, "suggested_follow_ups": follow_ups}
+
+        if any(kw in query for kw in ("save", "saved", "saving")):
+            net = total_income - total_expenses
+            reply = (
+                f"Based on your logged transactions: income {total_income:.2f} XAF, "
+                f"expenses {total_expenses:.2f} XAF, for a net of {net:.2f} XAF."
+            )
+            return {"reply": reply, "suggested_follow_ups": follow_ups}
+
+        if any(kw in query for kw in ("reduce", "cut", "limit", "warning")):
+            warnings = []
+            for b in budgets:
+                pct = float(b.get("percentage_used", 0.0))
+                cat_label = str(b.get("category", "")).replace("EXPENSE_", "").title()
+                if pct > 100:
+                    warnings.append(f"Your {cat_label} budget is exceeded ({pct:.0f}% used).")
+                elif pct >= 80:
+                    warnings.append(f"Your {cat_label} budget is close to its limit ({pct:.0f}% used).")
+            reply = "\n".join(warnings) if warnings else "All your active budgets are currently within safe limits."
+            return {"reply": reply, "suggested_follow_ups": follow_ups}
+
+        # Free-text search across narratives/categories
+        words = [w for w in query.split() if len(w) > 2]
+        matched = [
+            tx for tx in transactions
+            if words and any(
+                w in (tx.get("narrative", "") or "").lower() or w in (tx.get("category", "") or "").lower()
+                for w in words
+            )
+        ]
+        if matched:
+            lines = [f"I found {len(matched)} matching transaction(s):"]
+            for tx in matched[:5]:
+                sign = "+" if tx.get("direction") == "CREDIT" else "-"
+                lines.append(f"- {tx.get('narrative') or 'Transaction'}: {sign}{float(tx.get('amount', 0.0)):.2f} XAF")
+            reply = "\n".join(lines)
+            return {"reply": reply, "suggested_follow_ups": follow_ups}
+
+        reply = (
+            "I can help with your accounts, budgets, and spending. Try asking things like "
+            "\"Where did I spend the most?\", \"How much did I save?\", or \"What should I reduce?\""
+        )
+        return {"reply": reply, "suggested_follow_ups": follow_ups, "fallback": True}
