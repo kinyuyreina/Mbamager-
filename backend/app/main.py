@@ -27,18 +27,25 @@ from app.api.routes import (
 from app.core.config import settings
 from app.core.exceptions import setup_exception_handlers
 from app.core.middleware import setup_middleware
+from app.core.scheduler import create_scheduler
 from app.database.session import get_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Application startup/shutdown hook. Recurring-transaction scheduling
-    (APScheduler) attaches here once configured (see PROJECT_STATE roadmap);
-    app.state.scheduler stays None until then.
+    Application startup/shutdown hook. Starts the APScheduler instance that
+    drives automatic recurring-transaction processing (see core/scheduler.py)
+    and shuts it down cleanly on app exit.
     """
-    app.state.scheduler = None
-    yield
+    scheduler = create_scheduler()
+    scheduler.start()
+    app.state.scheduler = scheduler
+    try:
+        yield
+    finally:
+        scheduler.shutdown(wait=False)
+        app.state.scheduler = None
 
 
 app = FastAPI(
