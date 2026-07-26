@@ -75,13 +75,15 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 *   [x] Added the missing `recharts` frontend dependency that `Analytics.tsx` depends on (`fix #10`).
 *   [x] Fixed an invalid CORS config (`allow_origins=["*"]` + `allow_credentials=True`); switched to explicit configurable origins with credentials off, matching the Bearer-token (non-cookie) auth model (`fix #11`).
 *   [x] Removed the dead, unused `backend/app/routers/` package (`fix #13`).
+*   [x] Fixed a real production bug in `BaseRepository.create()`/`update()`: neither refreshed the object after `flush()`, so any model with an `onupdate=func.now()` column (e.g. `Transaction.updated_at`) crashed with `MissingGreenlet` the moment a response tried to serialize it — reproduced via the new transaction tests below (`fix #14`).
+*   [x] Added unit/API test coverage for the transaction ledger (Decimal precision round-trip, validation, CRUD, cross-user access), the SMS Stage-1 regex parser (all 8 message shapes plus the Gemini-fallback `None` cases), and the budget risk classifier — 28 tests total, up from 5 (`fix #15`).
 
 ---
 
 ## 8. Pending Tasks
 
 ### Sprint 6 — Hardening (current)
-*   [ ] Expand test coverage beyond the current 5 smoke tests (`root`, `health`, `auth flow`, `unauthorized`, `account creation`) — no automated tests currently cover transactions, budgets, goals, recurring transactions, SMS parsing, or any AI service, despite those being where the "AI never owns money" and Decimal-precision laws matter most.
+*   [ ] Continue expanding test coverage — transaction ledger, SMS Stage-1 parsing, and budget risk classification now have unit/API tests (`fix #14`/`#15`), but budgets' full progress calculation, goals, recurring transactions, and the AI services (M-PARSE Stage 2, SENTINEL, COMPASS, PULSE, GUIDE) are still untested.
 *   [ ] Verify `google-genai==0.5.0` SDK compatibility against the current Gemini 3.x model lineup (`GEMINI_MODEL=gemini-3.5-flash`).
 
 ### Sprint 7 — Njangi / Tontine Groups (not started)
@@ -93,7 +95,7 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 ---
 
 ## 9. Next Immediate Task
-*   **Sprint 6:** Expand test coverage — starting with the transaction ledger and SMS parsing services, since those sit directly under the "AI never owns money" and Decimal-precision engineering laws.
+*   **Sprint 6:** Continue expanding test coverage — budgets' full progress calculation, goals, recurring transactions, then the AI services.
 
 ---
 
@@ -154,7 +156,7 @@ mbamager/
 ---
 
 ## 13. Known Limitations (Sprint 6)
-*   **Thin test coverage:** only 5 smoke tests exist; the money-handling code paths (transactions, budgets, goals, recurring, SMS parsing, AI services) are untested. See Section 8.
+*   **Test coverage still growing:** transaction ledger, SMS Stage-1 parsing, and budget risk classification are now covered (28 tests total); budgets' progress calc, goals, recurring transactions, and all AI services remain untested. See Section 8.
 *   **No Njangi/Tontine support yet:** promised in the product vision but not yet modeled or built. See Section 8.
 *   **Search doesn't scale:** global search is client-side only, fetching full collections per open. Fine for MVP, not for growth. See Section 8.
 
@@ -171,3 +173,4 @@ mbamager/
 *   **2026-07-26:** Corrected this document's database references from SQLite to PostgreSQL — the actual running database, per `core/config.py`, `docker-compose.yml`, and `requirements.txt`, has been Postgres (`asyncpg`/`psycopg2-binary`) all along; the SQLite references were stale. Also added the previously-missing `accounts` router, fixed the SMS-import frontend call to hit `/sms/import` instead of a nonexistent `/sms/parse`, and added a `GET /transactions/` list-all endpoint.
 *   **2026-07-26 (cont'd):** Shipped the remaining Sprint 4/5 work: APScheduler-driven recurring transactions (`fix #5`), Scam Sentinel (`fix #6`), Budget Coach (`fix #7`), Financial Assistant / GUIDE (`fix #8`), and a `/dashboard/insights` crash fix (`fix #9`). Full code-vs-spec review surfaced further gaps; fixed the missing `recharts` frontend dependency (`fix #10`) and an invalid CORS config (`fix #11`). This document itself was significantly out of date — Sections 6–9 and 13 above have been rewritten to match the code's actual state rather than the Sprint 3 snapshot they were frozen at.
 *   **2026-07-26 (cont'd):** Removed the dead `backend/app/routers/` package (`fix #13`) and corrected the Section 12 folder tree, which had never listed the real `backend/app/api/routes/` directory in the first place.
+*   **2026-07-26 (cont'd):** Began expanding test coverage per Section 8. Writing tests for transaction creation surfaced a real bug: `BaseRepository.create()`/`update()` never refreshed after `flush()`, so `onupdate=func.now()` columns crashed API responses with `MissingGreenlet` (`fix #14`). Added 23 new tests across transactions, SMS Stage-1 parsing, and budget risk classification (`fix #15`).

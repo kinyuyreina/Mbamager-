@@ -46,3 +46,21 @@ def client(db_session):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiters():
+    """
+    auth_limiter/sms_limiter/ai_limiter (app/core/rate_limiter.py) are
+    module-level singletons that persist for the life of the Python
+    process, keyed by client IP. TestClient always uses the same fixed
+    IP, so without resetting this between tests, running the full suite
+    trips the real rate limit after ~10 auth calls even though each test
+    is otherwise isolated via its own in-memory database.
+    """
+    from app.core.rate_limiter import auth_limiter, sms_limiter, ai_limiter
+
+    auth_limiter.history.clear()
+    sms_limiter.history.clear()
+    ai_limiter.history.clear()
+    yield
