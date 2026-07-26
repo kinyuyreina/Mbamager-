@@ -19,7 +19,12 @@ config = context.config
 
 # Override the sqlalchemy.url from alembic.ini with the app's real DATABASE_URL
 # (from environment / .env) so migrations always target the same DB as the app.
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+#
+# The app runtime uses an async driver (postgresql+asyncpg://...) because the
+# repository layer is built on AsyncSession. Alembic itself runs migrations
+# synchronously, so we swap in the sync psycopg2 driver here only.
+_migration_url = settings.DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
+config.set_main_option("sqlalchemy.url", _migration_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

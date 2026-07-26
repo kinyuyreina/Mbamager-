@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # PostgreSQL Database Connection
-    # Format: postgresql://<user>:<password>@<host>:<port>/<database>
-    DATABASE_URL: str = "postgresql://mbamager:mbamager@localhost:5432/mbamager"
+    # PostgreSQL Database Connection (async driver — repositories use AsyncSession)
+    # Format: postgresql+asyncpg://<user>:<password>@<host>:<port>/<database>
+    DATABASE_URL: str = "postgresql+asyncpg://mbamager:mbamager@localhost:5432/mbamager"
 
     # SMTP configuration for Password Recovery Emails
     SMTP_HOST: str = "smtp.gmail.com"
