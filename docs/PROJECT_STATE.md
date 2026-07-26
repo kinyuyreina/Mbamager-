@@ -84,7 +84,7 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 
 ### Sprint 6 — Hardening (current)
 *   [ ] Continue expanding test coverage — transaction ledger, SMS Stage-1 parsing, and budget risk classification now have unit/API tests (`fix #14`/`#15`), but budgets' full progress calculation, goals, recurring transactions, and the AI services (M-PARSE Stage 2, SENTINEL, COMPASS, PULSE, GUIDE) are still untested.
-*   [ ] Verify `google-genai==0.5.0` SDK compatibility against the current Gemini 3.x model lineup (`GEMINI_MODEL=gemini-3.5-flash`).
+*   [x] Verified `google-genai` SDK compatibility against the current Gemini 3.x model lineup and bumped the pin from `0.5.0` to `2.14.0` (`fix #17`). `gemini-3.5-flash` (`GEMINI_MODEL`) is GA and current; Google now recommends `google-genai>=2.0.0`. The code only uses the stable `client.models.generate_content()` interface (not the newer Interactions API, which has breaking changes across versions), and that surface is unchanged between `0.5.0` and `2.14.0` — confirmed by import checks and the full test suite (54/54) passing unmodified against the new pin. Not yet verified against a live Gemini API call (no API key available in this environment) — recommend a smoke test against a real key before relying on this in production.
 
 ### Sprint 7 — Njangi / Tontine Groups (not started)
 *   [ ] Design and implement a group-savings model (no `NjangiGroup`-equivalent exists yet; `AccountType`/`AccountProvider` have no group-savings option). The product vision (Section 1) and pitch (Section 2) both promise this, but it is not yet built.
