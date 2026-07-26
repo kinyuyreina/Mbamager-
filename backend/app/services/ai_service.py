@@ -19,6 +19,7 @@ from app.ai.prompts import (
     SPENDING_INSIGHT_PROMPT,
     EXPLANATION_PROMPT,
     SCAM_ANALYSIS_PROMPT,
+    BUDGET_COACH_PROMPT,
 )
 
 logger = logging.getLogger(__name__)
@@ -372,5 +373,86 @@ class AIService:
                 if matched_reasons
                 else "No immediate red flags found, but stay cautious with unfamiliar senders."
             ),
+            "fallback": True,
+        }
+
+    def generate_budget_coaching(
+        self,
+        category: str,
+        limit_amount: Decimal,
+        spent_amount: Decimal,
+        remaining_amount: Decimal,
+        percentage_used: Decimal,
+        risk_level: str,
+    ) -> Dict[str, Any]:
+        """
+        Generate friendly, actionable coaching for a single budget (COMPASS).
+        Consumes deterministic progress metrics computed by BudgetService —
+        per Engineering Law 1, this never calculates or writes budget figures
+        itself, it only turns already-computed numbers into plain-language
+        guidance.
+        """
+        prompt = BUDGET_COACH_PROMPT.format(
+            category=category,
+            limit_amount=str(limit_amount),
+            spent_amount=str(spent_amount),
+            remaining_amount=str(remaining_amount),
+            percentage_used=str(percentage_used),
+            risk_level=risk_level,
+        )
+
+        result = self._call_gemini_json(prompt)
+        if result and "message" in result:
+            tips = result.get("tips", [])
+            if not isinstance(tips, list):
+                tips = [str(tips)]
+            return {
+                "message": result["message"],
+                "tips": tips[:3],
+                "encouragement": result.get("encouragement", "Keep going, you've got this!"),
+            }
+
+        # Deterministic fallback if Gemini is unavailable or fails.
+        category_label = category.replace("EXPENSE_", "").replace("_", " ").title()
+
+        if risk_level == "EXCEEDED":
+            message = (
+                f"You've gone over your {category_label} budget of {limit_amount} XAF — "
+                f"you're now {percentage_used}% in. It happens; the key is adjusting the "
+                "next period rather than dwelling on it."
+            )
+            tips = [
+                f"Pause non-essential {category_label} spending until your next budget period starts.",
+                "Review the largest transactions in this category to spot one-off vs. recurring costs.",
+                "Set a lower daily limit for the rest of the month to avoid compounding the overage.",
+            ]
+            encouragement = "One tough period doesn't undo your progress — reset and keep tracking."
+        elif risk_level == "WARNING":
+            message = (
+                f"You're at {percentage_used}% of your {category_label} budget "
+                f"({spent_amount} of {limit_amount} XAF), with {remaining_amount} XAF left. "
+                "You're close to the limit, so a little care now goes a long way."
+            )
+            tips = [
+                f"Slow down on {category_label} purchases for the next few days.",
+                "Check if any upcoming recurring payments will land in this category before the period ends.",
+                "Move any spare change into savings so it isn't tempting to spend.",
+            ]
+            encouragement = "You're still in control — small adjustments now will keep you on track."
+        else:
+            message = (
+                f"You're in good shape on {category_label}: {percentage_used}% used, "
+                f"with {remaining_amount} XAF still available out of {limit_amount} XAF."
+            )
+            tips = [
+                "Keep logging transactions as they happen so this stays accurate.",
+                f"Consider setting aside part of the remaining {category_label} budget as savings if you don't need it.",
+            ]
+            encouragement = "Great discipline — keep it up!"
+
+        return {
+            "message": message,
+            "tips": tips,
+            "encouragement": encouragement,
             "fallback": True,
         }
