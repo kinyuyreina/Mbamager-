@@ -26,6 +26,10 @@ from app.repositories import (
     RecurringTransactionRepository,
     SavingsGoalRepository,
     SMSMessageRepository,
+    TontineContributionRepository,
+    TontineGroupRepository,
+    TontineMemberRepository,
+    TontinePayoutRepository,
     TransactionRepository,
     UserRepository,
 )
@@ -39,6 +43,7 @@ from app.services import (
     RecurringTransactionService,
     SavingsGoalService,
     SMSService,
+    TontineService,
     TransactionService,
     UserService,
 )
@@ -72,6 +77,16 @@ def get_savings_goal_service(db: AsyncSession = Depends(get_db)) -> SavingsGoalS
 
 def get_ai_service() -> AIService:
     return AIService()
+
+
+def get_tontine_service(db: AsyncSession = Depends(get_db)) -> TontineService:
+    return TontineService(
+        TontineGroupRepository(db),
+        TontineMemberRepository(db),
+        TontineContributionRepository(db),
+        TontinePayoutRepository(db),
+        notification_service=get_notification_service(db),
+    )
 
 
 # --- Services with cross-repository dependencies -----------------------------------------
