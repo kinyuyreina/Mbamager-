@@ -48,18 +48,6 @@ export interface TransactionReclassifyResponse {
   confidence: number;
 }
 
-export interface SmsImportResult {
-  success: boolean;
-  transaction?: Transaction;
-  message?: string;
-  details?: {
-    provider: string;
-    amount: number;
-    fee: number;
-    external_tx_id: string;
-  };
-}
-
 export const transactionsService = {
   /**
    * Get all transactions, optionally filtered.
@@ -140,11 +128,10 @@ export const transactionsService = {
     return response.data;
   },
 
-  /**
-   * Parse a raw SMS text block to automatically log a transaction (Stage 1/2 processing)
-   */
-  async importSms(smsText: string): Promise<SmsImportResult> {
-    const response = await api.post<SmsImportResult>('/sms/parse', { text: smsText });
-    return response.data;
-  },
+  // Note: SMS import lives in services/sms.ts (smsService.importSingle /
+  // importBatch), which correctly targets POST /sms/import with the
+  // {sender, message_body, received_at} payload the backend expects. An
+  // earlier duplicate here targeted a nonexistent /sms/parse endpoint with
+  // the wrong payload shape and was unused anywhere in the app, so it was
+  // removed rather than fixed in place.
 };
