@@ -1,6 +1,5 @@
 import { api } from '../lib/api';
 import { Transaction, TransactionDirection } from '../types';
-import { accountsService } from './accounts';
 
 export interface CreateTransactionPayload {
   account_id: number;
@@ -50,35 +49,18 @@ export interface TransactionReclassifyResponse {
 
 export const transactionsService = {
   /**
-   * Get all transactions, optionally filtered.
-   * If account_id is not specified, it will first fetch all accounts,
-   * then fetch all transactions for each account in parallel to build the global ledger.
+   * Get all transactions for the current user, optionally filtered by
+   * account, category, or direction. Backed by GET /transactions/, which
+   * lists across every account server-side.
    */
   async getAll(filters: TransactionFilters = {}): Promise<Transaction[]> {
-    let allTransactions: Transaction[] = [];
+    const params: Record<string, string | number> = {};
+    if (filters.account_id) params.account_id = filters.account_id;
+    if (filters.category) params.category = filters.category;
+    if (filters.direction) params.direction = filters.direction;
 
-    if (filters.account_id) {
-      const response = await api.get<Transaction[]>(`/transactions/account/${filters.account_id}`);
-      allTransactions = response.data || [];
-    } else {
-      // Fetch all accounts
-      const accounts = await accountsService.getAll();
-      if (accounts && accounts.length > 0) {
-        const promises = accounts.map(async (account) => {
-          try {
-            const response = await api.get<Transaction[]>(`/transactions/account/${account.id}`);
-            return response.data || [];
-          } catch (e) {
-            console.error(`Error fetching transactions for account ${account.id}`, e);
-            return [];
-          }
-        });
-        const results = await Promise.all(promises);
-        allTransactions = results.flat();
-      }
-    }
-
-    return allTransactions;
+    const response = await api.get<Transaction[]>('/transactions/', { params });
+    return response.data || [];
   },
 
   /**
