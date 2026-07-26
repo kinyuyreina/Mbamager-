@@ -74,13 +74,13 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 *   [x] Fixed a `/dashboard/insights` crash and the account-creation test (`fix #9`).
 *   [x] Added the missing `recharts` frontend dependency that `Analytics.tsx` depends on (`fix #10`).
 *   [x] Fixed an invalid CORS config (`allow_origins=["*"]` + `allow_credentials=True`); switched to explicit configurable origins with credentials off, matching the Bearer-token (non-cookie) auth model (`fix #11`).
+*   [x] Removed the dead, unused `backend/app/routers/` package (`fix #13`).
 
 ---
 
 ## 8. Pending Tasks
 
 ### Sprint 6 — Hardening (current)
-*   [ ] Remove the dead, unused `backend/app/routers/` package (empty duplicate of `backend/app/api/routes/`, which is the one actually registered in `main.py`).
 *   [ ] Expand test coverage beyond the current 5 smoke tests (`root`, `health`, `auth flow`, `unauthorized`, `account creation`) — no automated tests currently cover transactions, budgets, goals, recurring transactions, SMS parsing, or any AI service, despite those being where the "AI never owns money" and Decimal-precision laws matter most.
 *   [ ] Verify `google-genai==0.5.0` SDK compatibility against the current Gemini 3.x model lineup (`GEMINI_MODEL=gemini-3.5-flash`).
 
@@ -93,7 +93,7 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 ---
 
 ## 9. Next Immediate Task
-*   **Sprint 6:** Remove the dead `backend/app/routers/` package, then begin expanding test coverage — starting with the transaction ledger and SMS parsing services, since those sit directly under the "AI never owns money" and Decimal-precision engineering laws.
+*   **Sprint 6:** Expand test coverage — starting with the transaction ledger and SMS parsing services, since those sit directly under the "AI never owns money" and Decimal-precision engineering laws.
 
 ---
 
@@ -125,6 +125,7 @@ mbamager/
 │   ├── alembic/              # Database migration version files
 │   ├── app/
 │   │   ├── ai/               # AI Cognitive services (M-PARSE, COMPASS, etc.)
+│   │   ├── api/routes/       # FastAPI HTTP request handlers, registered in main.py
 │   │   ├── constants/        # static values (providers, categories, currencies)
 │   │   ├── core/             # JWT, Bcrypt security, and global configuration
 │   │   ├── database/         # Session managers and ORM Declarative Base
@@ -132,7 +133,6 @@ mbamager/
 │   │   ├── models/           # SQLAlchemy Database tables
 │   │   ├── prompts/          # System prompts for Gemini
 │   │   ├── repositories/     # SQLAlchemy Database CRUD wrappers
-│   │   ├── routers/          # FastAPI HTTP request handlers
 │   │   ├── schemas/          # Pydantic request-response schemas
 │   │   ├── services/         # Deterministic business logic services
 │   │   └── main.py           # FastAPI entrypoint
@@ -157,7 +157,6 @@ mbamager/
 *   **Thin test coverage:** only 5 smoke tests exist; the money-handling code paths (transactions, budgets, goals, recurring, SMS parsing, AI services) are untested. See Section 8.
 *   **No Njangi/Tontine support yet:** promised in the product vision but not yet modeled or built. See Section 8.
 *   **Search doesn't scale:** global search is client-side only, fetching full collections per open. Fine for MVP, not for growth. See Section 8.
-*   **Dead code:** `backend/app/routers/` is an unused empty package left over from before routing moved to `backend/app/api/routes/`.
 
 ---
 
@@ -171,3 +170,4 @@ mbamager/
 *   **2026-06-30:** Removed Express and consolidated to Vite server mock endpoints for development runtime. Renamed `transaction_categories.py` to `categories.py`. Generated core safety architectures, security crypt engines, Alembic migration systems, and created `docs/PROJECT_STATE.md` to persist the roadmap across development turns.
 *   **2026-07-26:** Corrected this document's database references from SQLite to PostgreSQL — the actual running database, per `core/config.py`, `docker-compose.yml`, and `requirements.txt`, has been Postgres (`asyncpg`/`psycopg2-binary`) all along; the SQLite references were stale. Also added the previously-missing `accounts` router, fixed the SMS-import frontend call to hit `/sms/import` instead of a nonexistent `/sms/parse`, and added a `GET /transactions/` list-all endpoint.
 *   **2026-07-26 (cont'd):** Shipped the remaining Sprint 4/5 work: APScheduler-driven recurring transactions (`fix #5`), Scam Sentinel (`fix #6`), Budget Coach (`fix #7`), Financial Assistant / GUIDE (`fix #8`), and a `/dashboard/insights` crash fix (`fix #9`). Full code-vs-spec review surfaced further gaps; fixed the missing `recharts` frontend dependency (`fix #10`) and an invalid CORS config (`fix #11`). This document itself was significantly out of date — Sections 6–9 and 13 above have been rewritten to match the code's actual state rather than the Sprint 3 snapshot they were frozen at.
+*   **2026-07-26 (cont'd):** Removed the dead `backend/app/routers/` package (`fix #13`) and corrected the Section 12 folder tree, which had never listed the real `backend/app/api/routes/` directory in the first place.
