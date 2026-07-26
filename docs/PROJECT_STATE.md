@@ -23,7 +23,7 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 
 *   **Frontend:** React (SPA) + Tailwind CSS + Lucide Icons. Built with desktop precision and a responsive, warm mobile-first layout.
 *   **Backend:** FastAPI (Python 3.12). Replaced the temporary Express node layer with Vite development static proxying to directly route API calls.
-*   **Database:** SQLite (local development file `mbamager.db` mapped via SQLAlchemy ORM).
+*   **Database:** PostgreSQL 16 (via Docker Compose, `postgresql+asyncpg://` async driver), mapped via SQLAlchemy 2.0 ORM.
 *   **Migrations:** Alembic configured with auto-generation support, mapped models, and custom database URL properties.
 *   **Cognitive Services:** Server-side Gemini API SDK (`@google/genai` or `google-genai` Python library) driving the AI Layer with isolated prompts.
 
@@ -32,7 +32,7 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 ## 5. Frozen Engineering Rules
 
 1.  **AI Never Owns Money (Core Engineering Law):** Under no circumstances may AI compute, calculate, write, or modify financial ledger balances, budgets, nets, or transactions. All calculations must be performed by deterministic Python business services. The AI is restricted strictly to text parsing, scam risk classification, insight suggestions, translation, and coaching.
-2.  **Financial Precision:** The `float` data type is banned for financial values. All money, transactions, fees, and balances must be stored and calculated using Python's `decimal.Decimal` class and SQLite `Numeric(precision=18, scale=2)` configurations.
+2.  **Financial Precision:** The `float` data type is banned for financial values. All money, transactions, fees, and balances must be stored and calculated using Python's `decimal.Decimal` class and PostgreSQL `Numeric(precision=18, scale=2)` configurations.
 3.  **Two-Stage Parsing Pipeline:** The SMS transaction parsing system must always attempt fast, local, and free regular expression matches (Stage 1) from `app/constants/sms_patterns.py` first. It may only fallback to Gemini API parsing (Stage 2) if regex confidence is zero, minimizing API latency and preserving free-tier quotas.
 4.  **Modular, Layered Responsibility:**
     *   **Routers:** Handle HTTP transport only; no calculations.
@@ -94,7 +94,7 @@ The technical architecture of Mbamager is **frozen** and follows a strictly deco
 ## 10. Technical Decisions
 *   **No Express dependency:** Removed Node Express server to keep FastAPI as the single source of truth for backend services, reducing project complexity.
 *   **Single CSS File:** Preserved Tailwind v4 standard config (`@import "tailwindcss";` inside `index.css`) for high performance.
-*   **SQLite as Primary Store:** Lightweight, serverless, and transaction-safe database engine perfect for an MVP hackathon project in Cameroon.
+*   **PostgreSQL as Primary Store:** Runs via Docker Compose (`postgres:16-alpine`) with the async `asyncpg` driver for the app and sync `psycopg2-binary` for Alembic migrations. Superseded the earlier SQLite plan once Alembic and concurrent-write requirements made Postgres the better fit.
 
 ---
 
@@ -148,7 +148,7 @@ mbamager/
 ---
 
 ## 13. Known Limitations (Sprint 2)
-*   **Simulated Backend Connection:** Frontend handles Stage 1 regex logic in an interactive playground mock interface during dev server runtime, as the active SQLite write APIs are scheduled for Sprint 3/4.
+*   **Simulated Backend Connection:** Frontend handles Stage 1 regex logic in an interactive playground mock interface during dev server runtime, as the active database write APIs are scheduled for Sprint 3/4.
 *   **Placeholder Prompts:** Prompts in `app/prompts/` exist as markdown structural headers; full instruction matrices will be finalized in Sprint 5.
 
 ---
@@ -161,3 +161,4 @@ mbamager/
 
 ## 15. Changelog
 *   **2026-06-30:** Removed Express and consolidated to Vite server mock endpoints for development runtime. Renamed `transaction_categories.py` to `categories.py`. Generated core safety architectures, security crypt engines, Alembic migration systems, and created `docs/PROJECT_STATE.md` to persist the roadmap across development turns.
+*   **2026-07-26:** Corrected this document's database references from SQLite to PostgreSQL — the actual running database, per `core/config.py`, `docker-compose.yml`, and `requirements.txt`, has been Postgres (`asyncpg`/`psycopg2-binary`) all along; the SQLite references were stale. Also added the previously-missing `accounts` router, fixed the SMS-import frontend call to hit `/sms/import` instead of a nonexistent `/sms/parse`, and added a `GET /transactions/` list-all endpoint.
