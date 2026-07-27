@@ -19,7 +19,7 @@ from app.schemas.auth import (
     VerifyOtpRequest,
     ResetPasswordRequest,
 )
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.services import AuthService, PasswordResetService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -174,3 +174,25 @@ async def get_me(
     Retrieve the current authenticated user's profile information.
     """
     return current_user
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    updates: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service)
+) -> User:
+    """
+    Update the current authenticated user's profile (name/phone/email/password).
+    Only fields explicitly included in the request body are changed.
+    """
+    try:
+        updated_user = await auth_service.update_profile(
+            current_user,
+            updates.model_dump(exclude_unset=True),
+        )
+        return updated_user
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )

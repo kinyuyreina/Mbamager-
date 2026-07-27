@@ -17,6 +17,7 @@ interface AuthState {
   restoreSession: () => boolean;
   loadCurrentUser: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateProfile: (updates: { username?: string; phone_number?: string; email?: string; password?: string }) => Promise<void>;
   isAuthenticated: () => boolean;
   clearError: () => void;
 }
@@ -183,6 +184,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (err) {
         console.error('Background user refresh failed:', err);
       }
+    },
+
+    updateProfile: async (updates) => {
+      const user = await authService.updateProfile(updates);
+      storage.set('mb_user_profile', user);
+      set({
+        user,
+        currentUser: user,
+      });
     },
 
     isAuthenticated: () => {

@@ -75,6 +75,20 @@ export const authService = {
   },
 
   /**
+   * Update the current authenticated user's profile. Only send the fields
+   * that should change - the backend applies a partial update.
+   */
+  async updateProfile(updates: {
+    username?: string;
+    phone_number?: string;
+    email?: string;
+    password?: string;
+  }): Promise<User> {
+    const response = await api.patch<User>('/auth/me', updates);
+    return response.data;
+  },
+
+  /**
    * Performs client-side session clean-up.
    */
   async logout(): Promise<void> {

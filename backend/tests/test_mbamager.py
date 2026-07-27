@@ -117,6 +117,61 @@ def test_refresh_token_flow(client: TestClient):
     response = client.post("/api/v1/auth/refresh", json={"refresh_token": "not-a-real-token"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+def test_update_profile(client: TestClient):
+    """
+    Test that PATCH /auth/me updates only the submitted fields, rejects
+    duplicate identifiers already used by another user, and rejects
+    unauthenticated requests.
+    """
+    register_payload = {
+        "username": "profileuser",
+        "phone_number": "+237677777777",
+        "password": "SecurePassword123!"
+    }
+    response = client.post("/api/v1/auth/register", json=register_payload)
+    assert response.status_code == status.HTTP_201_CREATED
+
+    other_payload = {
+        "username": "otheruser",
+        "phone_number": "+237666666666",
+        "password": "SecurePassword123!"
+    }
+    response = client.post("/api/v1/auth/register", json=other_payload)
+    assert response.status_code == status.HTTP_201_CREATED
+
+    login_payload = {"phone_number": "+237677777777", "password": "SecurePassword123!"}
+    response = client.post("/api/v1/auth/login", json=login_payload)
+    headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+    # 1. Unauthenticated update is rejected
+    response = client.patch("/api/v1/auth/me", json={"username": "nope"})
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # 2. Partial update: only username changes, phone stays the same
+    response = client.patch("/api/v1/auth/me", json={"username": "newname"}, headers=headers)
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["username"] == "newname"
+    assert data["phone_number"] == "+237677777777"
+
+    # 3. Email can be added
+    response = client.patch("/api/v1/auth/me", json={"email": "profileuser@example.com"}, headers=headers)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["email"] == "profileuser@example.com"
+
+    # 4. Taking a phone number already used by another user is rejected
+    response = client.patch("/api/v1/auth/me", json={"phone_number": "+237666666666"}, headers=headers)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    # 5. New password works on next login
+    response = client.patch("/api/v1/auth/me", json={"password": "NewSecurePassword456!"}, headers=headers)
+    assert response.status_code == status.HTTP_200_OK
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"phone_number": "+237677777777", "password": "NewSecurePassword456!"},
+    )
+    assert response.status_code == status.HTTP_200_OK
+
 def test_unauthorized_endpoints(client: TestClient):
     """
     Test that authenticated endpoints reject requests without a token.
