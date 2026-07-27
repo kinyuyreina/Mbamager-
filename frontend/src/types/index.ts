@@ -152,6 +152,75 @@ export interface DashboardSummary {
   unread_notifications: Notification[];
 }
 
+export type TontineFrequency = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+export type TontineGroupStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+export type TontineContributionStatus = 'PAID' | 'LATE';
+
+export interface TontineGroup {
+  id: number;
+  creator_id: number;
+  name: string;
+  description?: string | null;
+  contribution_amount: number;
+  currency: string;
+  frequency: TontineFrequency;
+  status: TontineGroupStatus;
+  current_cycle: number;
+  start_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TontineMember {
+  id: number;
+  group_id: number;
+  user_id?: number | null;
+  display_name: string;
+  payout_position: number;
+  has_received_payout: boolean;
+  joined_at: string;
+}
+
+export interface TontineContribution {
+  id: number;
+  group_id: number;
+  member_id: number;
+  cycle_number: number;
+  amount: number;
+  status: TontineContributionStatus;
+  transaction_id?: number | null;
+  paid_at: string;
+}
+
+export interface TontinePayout {
+  id: number;
+  group_id: number;
+  member_id: number;
+  cycle_number: number;
+  amount: number;
+  transaction_id?: number | null;
+  paid_at: string;
+}
+
+export interface TontineMemberCycleStatus {
+  member_id: number;
+  display_name: string;
+  payout_position: number;
+  has_paid: boolean;
+}
+
+export interface TontineCycleStatus {
+  group_id: number;
+  cycle_number: number;
+  contribution_amount: number;
+  expected_total: number;
+  collected_total: number;
+  members: TontineMemberCycleStatus[];
+  all_members_paid: boolean;
+  recipient_member_id?: number | null;
+  payout_made: boolean;
+}
+
 export interface AuthResponse {
   access_token: string;
   token_type: string;

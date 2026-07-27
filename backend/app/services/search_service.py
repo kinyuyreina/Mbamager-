@@ -136,7 +136,7 @@ class SearchService:
                     title=group.name,
                     subtitle=f"Tontine • Cycle {group.current_cycle} • {group.status.value}",
                     meta=str(group.contribution_amount),
-                    url=f"/tontine/{group.id}",
+                    url="/tontine",
                 )
             )
 
