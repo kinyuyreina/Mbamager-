@@ -63,7 +63,6 @@ async def test_budget_progress_sums_amount_plus_fee_for_matching_transactions(
     budget_resp = client.post(
         "/api/v1/budgets/",
         json={
-            "user_id": user_id,
             "category": "Food & Groceries",
             "limit_amount": "200000.00",
             "start_date": start_date.isoformat(),
@@ -135,7 +134,6 @@ async def test_budget_progress_with_no_matching_transactions_is_zero(
     budget_resp = client.post(
         "/api/v1/budgets/",
         json={
-            "user_id": user_id,
             "category": "Medical & Health",
             "limit_amount": "100000.00",
             "start_date": (today - timedelta(days=1)).isoformat(),
@@ -170,7 +168,6 @@ def test_risk_level_matches_progress_thresholds_end_to_end(client: TestClient):
     budget_resp = client.post(
         "/api/v1/budgets/",
         json={
-            "user_id": user_id,
             "category": "Food & Groceries",
             "limit_amount": "10000.00",
             "start_date": (today - timedelta(days=1)).isoformat(),
