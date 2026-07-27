@@ -58,6 +58,14 @@ export const authService = {
   },
 
   /**
+   * Exchange a refresh token for a new access/refresh token pair.
+   */
+  async refreshToken(refreshToken: string): Promise<TokenResponse> {
+    const response = await api.post<TokenResponse>('/auth/refresh', { refresh_token: refreshToken });
+    return response.data;
+  },
+
+  /**
    * Fetch current authenticated user profile.
    * Matches FastAPI backend spec: returns User.
    */

@@ -36,6 +36,13 @@ class TokenResponse(BaseSchema):
     refresh_token: str | None = Field(default=None, description="OAuth2 refresh token string")
     expires_in: int = Field(..., description="Access token lifetime in seconds")
 
+class RefreshTokenRequest(BaseSchema):
+    """
+    Schema representing a request to exchange a refresh token for a new
+    access/refresh token pair.
+    """
+    refresh_token: str = Field(..., description="Previously issued refresh token")
+
 class ForgotPasswordRequest(BaseSchema):
     """
     Schema representing a password recovery request.

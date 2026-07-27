@@ -34,21 +34,75 @@ api.interceptors.request.use(
   }
 );
 
-// Response Interceptor: Handle errors and auto-logout on expired sessions (401)
+// Endpoints that must never trigger a refresh-and-retry cycle themselves,
+// since a 401 from these means the session truly cannot be recovered.
+const AUTH_ENDPOINTS_NO_RETRY = ['/auth/login', '/auth/register', '/auth/refresh'];
+
+function forceLogout(): void {
+  storage.remove('mb_auth_token');
+  storage.remove('mb_refresh_token');
+  storage.remove('mb_user_profile');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+  }
+}
+
+// Concurrent requests that 401 while a refresh is already in-flight share
+// the same refresh call instead of each firing their own.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function performRefresh(): Promise<string | null> {
+  const refreshToken = storage.get<string | null>('mb_refresh_token', null);
+  if (!refreshToken) return null;
+
+  try {
+    const response = await axios.post(
+      `${api.defaults.baseURL}/auth/refresh`,
+      { refresh_token: refreshToken },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    const { access_token, refresh_token: newRefreshToken } = response.data;
+    storage.set('mb_auth_token', access_token);
+    if (newRefreshToken) {
+      storage.set('mb_refresh_token', newRefreshToken);
+    }
+    return access_token as string;
+  } catch {
+    return null;
+  }
+}
+
+// Response Interceptor: on a 401, try to refresh the session once and
+// replay the original request; only force a logout if refresh itself fails
+// or the request has already been retried.
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const status = error.response?.status;
-    
-    if (status === 401) {
-      // Clear token and broadcast logout if unauthorized / token expired
-      storage.remove('mb_auth_token');
-      storage.remove('mb_user_profile');
-      
-      // Dispatch custom event to notify stores/components without importing them directly
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('auth:expired'));
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const url = originalRequest?.url || '';
+    const isAuthEndpoint = AUTH_ENDPOINTS_NO_RETRY.some((path) => url.includes(path));
+
+    if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+      originalRequest._retry = true;
+
+      if (!refreshPromise) {
+        refreshPromise = performRefresh().finally(() => {
+          refreshPromise = null;
+        });
       }
+
+      const newAccessToken = await refreshPromise;
+
+      if (newAccessToken) {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      }
+
+      forceLogout();
+    } else if (status === 401) {
+      forceLogout();
     }
     
     return Promise.reject(normalizeError(error));

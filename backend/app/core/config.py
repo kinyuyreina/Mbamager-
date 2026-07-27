@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = _INSECURE_DEFAULT_JWT_SECRET_KEY
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # Refresh tokens are long-lived and carry scope="refresh" so they can
+    # never be used directly against endpoints that expect an access token
+    # (get_current_user only accepts tokens without that scope claim).
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30  # 30 days
 
     # PostgreSQL Database Connection (async driver — repositories use AsyncSession)
     # Format: postgresql+asyncpg://<user>:<password>@<host>:<port>/<database>

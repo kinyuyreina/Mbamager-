@@ -42,6 +42,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const tokenResp = await authService.login(identifier, password);
         const token = tokenResp.access_token;
         storage.set('mb_auth_token', token);
+        if (tokenResp.refresh_token) {
+          storage.set('mb_refresh_token', tokenResp.refresh_token);
+        }
         set({ token });
         
         // Fetch current user immediately
@@ -75,6 +78,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const tokenResp = await authService.login(loginIdentifier, password);
         const token = tokenResp.access_token;
         storage.set('mb_auth_token', token);
+        if (tokenResp.refresh_token) {
+          storage.set('mb_refresh_token', tokenResp.refresh_token);
+        }
         set({ token });
         
         // 3. Fetch user profile
@@ -96,6 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
     logout: () => {
       storage.remove('mb_auth_token');
+      storage.remove('mb_refresh_token');
       storage.remove('mb_user_profile');
       set({
         token: null,
@@ -130,6 +137,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
       
       storage.remove('mb_auth_token');
+      storage.remove('mb_refresh_token');
       storage.remove('mb_user_profile');
       set({
         token: null,
@@ -152,6 +160,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         });
       } catch (err: any) {
         storage.remove('mb_auth_token');
+        storage.remove('mb_refresh_token');
         storage.remove('mb_user_profile');
         set({
           token: null,

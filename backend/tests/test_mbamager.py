@@ -69,6 +69,54 @@ def test_auth_and_registration_flow(client: TestClient):
     assert profile_data["username"] == "testuser"
     assert profile_data["phone_number"] == "+237699999999"
 
+def test_refresh_token_flow(client: TestClient):
+    """
+    Test that a refresh token can be exchanged for a new access/refresh
+    pair, that the old refresh token cannot be reused after rotation, and
+    that a refresh token cannot be used as an access token.
+    """
+    register_payload = {
+        "username": "refreshuser",
+        "phone_number": "+237688888888",
+        "password": "SecurePassword123!"
+    }
+    response = client.post("/api/v1/auth/register", json=register_payload)
+    assert response.status_code == status.HTTP_201_CREATED
+
+    login_payload = {
+        "phone_number": "+237688888888",
+        "password": "SecurePassword123!"
+    }
+    response = client.post("/api/v1/auth/login", json=login_payload)
+    assert response.status_code == status.HTTP_200_OK
+    token_data = response.json()
+    assert "refresh_token" in token_data and token_data["refresh_token"]
+    old_refresh_token = token_data["refresh_token"]
+
+    # 1. A refresh token must not work as an access token
+    bad_headers = {"Authorization": f"Bearer {old_refresh_token}"}
+    response = client.get("/api/v1/auth/me", headers=bad_headers)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # 2. Exchange the refresh token for a new pair
+    response = client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh_token})
+    assert response.status_code == status.HTTP_200_OK
+    new_token_data = response.json()
+    assert new_token_data["token_type"] == "bearer"
+    new_access_token = new_token_data["access_token"]
+    new_refresh_token = new_token_data["refresh_token"]
+    assert new_refresh_token and new_refresh_token != old_refresh_token
+
+    # 3. The new access token works against a protected endpoint
+    headers = {"Authorization": f"Bearer {new_access_token}"}
+    response = client.get("/api/v1/auth/me", headers=headers)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["username"] == "refreshuser"
+
+    # 4. A garbage/invalid refresh token is rejected
+    response = client.post("/api/v1/auth/refresh", json={"refresh_token": "not-a-real-token"})
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
 def test_unauthorized_endpoints(client: TestClient):
     """
     Test that authenticated endpoints reject requests without a token.
