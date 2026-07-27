@@ -9,19 +9,8 @@ export interface User {
   updated_at: string;
 }
 
-export type AccountType = 'MOBILE_MONEY' | 'BANK' | 'CASH' | 'NJANGI' | 'OTHER';
-export type AccountProvider = 
-  | 'MTN' 
-  | 'ORANGE' 
-  | 'SOCIETE_GENERALE' 
-  | 'BICEC' 
-  | 'UBA' 
-  | 'COMMUNITY_NJANGI' 
-  | 'OTHER' 
-  | 'MTN_MOMO' 
-  | 'ORANGE_MONEY' 
-  | 'CASH' 
-  | 'BANK';
+export type AccountType = 'MOBILE_MONEY' | 'BANK' | 'CASH' | 'OTHER';
+export type AccountProvider = 'MTN_MOMO' | 'ORANGE_MONEY' | 'CASH' | 'BANK' | 'OTHER';
 
 export interface Account {
   id: number;
