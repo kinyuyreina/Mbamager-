@@ -11,8 +11,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.models.sms_message import SMSMessage
-from app.models.transaction import Transaction, TransactionDirection, TransactionCategory
-from app.models.account import AccountProvider, Account
+from app.models.transaction import TransactionDirection, TransactionCategory
+from app.models.account import AccountProvider
 from app.repositories import SMSMessageRepository
 from app.schemas.sms import SMSImportRequest
 from app.schemas.transaction import TransactionCreate
