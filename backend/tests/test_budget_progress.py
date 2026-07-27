@@ -196,3 +196,49 @@ def test_risk_level_matches_progress_thresholds_end_to_end(client: TestClient):
     assert Decimal(data["remaining_amount"]) == Decimal("1000.00")
     assert Decimal(data["percentage_used"]) == Decimal("90.00")
     assert data["risk_level"] == "WARNING"
+
+
+def test_budget_update_and_delete_full_crud(client: TestClient):
+    """
+    Covers the CRUD paths the Budgets frontend page relies on: listing all
+    budgets, updating one, and deleting one — none of these were exercised
+    by the coaching-focused tests above.
+    """
+    headers, _ = _register_and_login(client, "+237611110003")
+
+    today = date.today()
+    create_resp = client.post(
+        "/api/v1/budgets/",
+        json={
+            "category": "Food & Groceries",
+            "limit_amount": "50000.00",
+            "start_date": str(today),
+            "end_date": str(today + timedelta(days=10)),
+        },
+        headers=headers,
+    )
+    assert create_resp.status_code == status.HTTP_201_CREATED
+    budget_id = create_resp.json()["id"]
+
+    # List includes the new budget
+    list_resp = client.get("/api/v1/budgets/", headers=headers)
+    assert list_resp.status_code == status.HTTP_200_OK
+    assert any(b["id"] == budget_id for b in list_resp.json())
+
+    # Update the limit only
+    update_resp = client.put(
+        f"/api/v1/budgets/{budget_id}",
+        json={"limit_amount": "75000.00"},
+        headers=headers,
+    )
+    assert update_resp.status_code == status.HTTP_200_OK
+    assert Decimal(update_resp.json()["limit_amount"]) == Decimal("75000.00")
+    # Unmodified fields are preserved
+    assert update_resp.json()["category"] == "Food & Groceries"
+
+    # Delete it
+    delete_resp = client.delete(f"/api/v1/budgets/{budget_id}", headers=headers)
+    assert delete_resp.status_code == status.HTTP_204_NO_CONTENT
+
+    list_after = client.get("/api/v1/budgets/", headers=headers)
+    assert not any(b["id"] == budget_id for b in list_after.json())

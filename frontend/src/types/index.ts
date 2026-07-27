@@ -63,20 +63,28 @@ export interface Budget {
   user_id: number;
   category: string;
   limit_amount: number;
-  current_spent: number;
   start_date: string;
   end_date: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface BudgetProgress {
   budget_id: number;
   category: string;
   limit_amount: number;
-  current_spent: number;
-  percentage_spent: number;
+  spent_amount: number;
   remaining_amount: number;
-  is_over_budget: boolean;
+  percentage_used: number;
+  start_date: string;
+  end_date: string;
+}
+
+export interface BudgetCoaching extends BudgetProgress {
+  risk_level: 'SAFE' | 'WARNING' | 'EXCEEDED';
+  message: string;
+  tips: string[];
+  encouragement: string;
 }
 
 export type GoalStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
