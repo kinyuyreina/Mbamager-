@@ -78,7 +78,7 @@ export default function Login() {
     clearError();
     try {
       // 1. Submit login request and load user (handled by Zustand store action)
-      await login(data.phone_number, data.password);
+      await login(data.phone_number, data.password, data.remember_me);
 
       // 2. Handle Remember Me storage logic
       if (data.remember_me) {

@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { storage } from '../utils/format';
+import { authStorage } from '../utils/format';
 
 // Core API client configuration
 const API_TIMEOUT = 15000; // 15 seconds
@@ -23,7 +23,7 @@ export const api = axios.create({
 // Request Interceptor: Inject JWT token automatically
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = storage.get<string | null>('mb_auth_token', null);
+    const token = authStorage.get<string | null>('mb_auth_token', null);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -39,9 +39,9 @@ api.interceptors.request.use(
 const AUTH_ENDPOINTS_NO_RETRY = ['/auth/login', '/auth/register', '/auth/refresh'];
 
 function forceLogout(): void {
-  storage.remove('mb_auth_token');
-  storage.remove('mb_refresh_token');
-  storage.remove('mb_user_profile');
+  authStorage.remove('mb_auth_token');
+  authStorage.remove('mb_refresh_token');
+  authStorage.remove('mb_user_profile');
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('auth:expired'));
   }
@@ -52,8 +52,12 @@ function forceLogout(): void {
 let refreshPromise: Promise<string | null> | null = null;
 
 async function performRefresh(): Promise<string | null> {
-  const refreshToken = storage.get<string | null>('mb_refresh_token', null);
+  const refreshToken = authStorage.get<string | null>('mb_refresh_token', null);
   if (!refreshToken) return null;
+
+  // Rotated tokens are written back to whichever storage (local vs
+  // session) the current session was started in.
+  const remember = authStorage.isRemembered();
 
   try {
     const response = await axios.post(
@@ -62,9 +66,9 @@ async function performRefresh(): Promise<string | null> {
       { headers: { 'Content-Type': 'application/json' } }
     );
     const { access_token, refresh_token: newRefreshToken } = response.data;
-    storage.set('mb_auth_token', access_token);
+    authStorage.set('mb_auth_token', access_token, remember);
     if (newRefreshToken) {
-      storage.set('mb_refresh_token', newRefreshToken);
+      authStorage.set('mb_refresh_token', newRefreshToken, remember);
     }
     return access_token as string;
   } catch {
