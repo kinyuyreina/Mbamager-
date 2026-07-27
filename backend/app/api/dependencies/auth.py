@@ -138,6 +138,7 @@ def get_sms_service(
         SMSMessageRepository(db),
         transaction_service=get_transaction_service(db, ai_service),
         account_service=get_account_service(db),
+        ai_service=ai_service,
     )
 
 
