@@ -42,6 +42,7 @@ from app.services import (
     NotificationService,
     RecurringTransactionService,
     SavingsGoalService,
+    SearchService,
     SMSService,
     TontineService,
     TransactionService,
@@ -86,6 +87,17 @@ def get_tontine_service(db: AsyncSession = Depends(get_db)) -> TontineService:
         TontineContributionRepository(db),
         TontinePayoutRepository(db),
         notification_service=get_notification_service(db),
+    )
+
+
+def get_search_service(db: AsyncSession = Depends(get_db)) -> SearchService:
+    return SearchService(
+        AccountRepository(db),
+        TransactionRepository(db),
+        SavingsGoalRepository(db),
+        RecurringTransactionRepository(db),
+        NotificationRepository(db),
+        TontineGroupRepository(db),
     )
 
 

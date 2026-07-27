@@ -5,7 +5,7 @@ This module defines the data access layer for TontineGroup, TontineMember,
 TontineContribution, and TontinePayout entities.
 """
 
-from sqlalchemy import func, select
+from sqlalchemy import cast, func, or_, select, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.tontine import TontineContribution, TontineGroup, TontineMember, TontinePayout
@@ -37,6 +37,26 @@ class TontineGroupRepository(BaseRepository[TontineGroup]):
             select(TontineGroup)
             .join(TontineMember, TontineMember.group_id == TontineGroup.id)
             .where(TontineMember.user_id == user_id)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
+
+    async def search_by_creator(self, creator_id: int, query: str, limit: int = 5) -> list[TontineGroup]:
+        """
+        Search groups a user created by name, description, or status.
+        """
+        pattern = f"%{query}%"
+        stmt = (
+            select(TontineGroup)
+            .where(
+                TontineGroup.creator_id == creator_id,
+                or_(
+                    TontineGroup.name.ilike(pattern),
+                    TontineGroup.description.ilike(pattern),
+                    cast(TontineGroup.status, String).ilike(pattern),
+                ),
+            )
+            .limit(limit)
         )
         result = await self.db.execute(stmt)
         return result.scalars().all()
