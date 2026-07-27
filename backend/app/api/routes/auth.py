@@ -123,7 +123,7 @@ async def login(
     """
     try:
         access_token, refresh_token = await auth_service.login(
-            identifier=login_in.phone_number,
+            identifier=login_in.identifier,
             password=login_in.password,
         )
         return TokenResponse(

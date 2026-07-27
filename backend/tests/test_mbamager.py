@@ -51,7 +51,7 @@ def test_auth_and_registration_flow(client: TestClient):
 
     # 2. Login with the credentials
     login_payload = {
-        "phone_number": "+237699999999",
+        "identifier": "+237699999999",
         "password": "SecurePassword123!"
     }
     response = client.post("/api/v1/auth/login", json=login_payload)
@@ -84,7 +84,7 @@ def test_refresh_token_flow(client: TestClient):
     assert response.status_code == status.HTTP_201_CREATED
 
     login_payload = {
-        "phone_number": "+237688888888",
+        "identifier": "+237688888888",
         "password": "SecurePassword123!"
     }
     response = client.post("/api/v1/auth/login", json=login_payload)
@@ -139,7 +139,7 @@ def test_update_profile(client: TestClient):
     response = client.post("/api/v1/auth/register", json=other_payload)
     assert response.status_code == status.HTTP_201_CREATED
 
-    login_payload = {"phone_number": "+237677777777", "password": "SecurePassword123!"}
+    login_payload = {"identifier": "+237677777777", "password": "SecurePassword123!"}
     response = client.post("/api/v1/auth/login", json=login_payload)
     headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
 
@@ -168,7 +168,7 @@ def test_update_profile(client: TestClient):
     assert response.status_code == status.HTTP_200_OK
     response = client.post(
         "/api/v1/auth/login",
-        json={"phone_number": "+237677777777", "password": "NewSecurePassword456!"},
+        json={"identifier": "+237677777777", "password": "NewSecurePassword456!"},
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -196,7 +196,7 @@ def test_account_creation_and_retrieval(client: TestClient):
     client.post("/api/v1/auth/register", json=register_payload)
     
     login_payload = {
-        "phone_number": "+237688888888",
+        "identifier": "+237688888888",
         "password": "SecurePassword123!"
     }
     response = client.post("/api/v1/auth/login", json=login_payload)

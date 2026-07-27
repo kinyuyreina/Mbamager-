@@ -14,7 +14,7 @@ export const authService = {
    * Matches FastAPI backend spec: returns TokenResponse.
    */
   async login(identifier: string, password: string): Promise<TokenResponse> {
-    const payload = { phone_number: identifier, password };
+    const payload = { identifier, password };
     const response = await api.post<TokenResponse>('/auth/login', payload);
     return response.data;
   },

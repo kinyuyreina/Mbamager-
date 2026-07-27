@@ -12,7 +12,7 @@ class LoginRequest(BaseSchema):
     """
     Schema representing a user login request using their email or phone number.
     """
-    phone_number: str = Field(
+    identifier: str = Field(
         ...,
         description="Email or phone number"
     )

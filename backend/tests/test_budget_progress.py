@@ -29,7 +29,7 @@ def _register_and_login(client: TestClient, phone: str) -> tuple[dict, int]:
     user_id = register_resp.json()["id"]
     response = client.post(
         "/api/v1/auth/login",
-        json={"phone_number": phone, "password": "SecurePassword123!"},
+        json={"identifier": phone, "password": "SecurePassword123!"},
     )
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}, user_id
